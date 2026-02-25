@@ -22,12 +22,13 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              // Next.js requires unsafe-inline for its runtime chunks
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              // Next.js requires unsafe-inline for its runtime chunks;
+              // Google APIs needed for Firebase signInWithPopup
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               // TMDB poster images
-              "img-src 'self' data: https://image.tmdb.org",
+              "img-src 'self' data: blob: https://image.tmdb.org https://lh3.googleusercontent.com",
               // Firebase / Firestore / Google APIs
               [
                 "connect-src 'self'",
@@ -36,7 +37,11 @@ const nextConfig: NextConfig = {
                 "wss://*.firebaseio.com",
                 "https://firestore.googleapis.com",
                 "https://identitytoolkit.googleapis.com",
+                "https://securetoken.googleapis.com",
+                "https://accounts.google.com",
               ].join(" "),
+              // Firebase Auth popup & OAuth iframe
+              "frame-src https://studio-7772387773-dc41a.firebaseapp.com https://accounts.google.com",
               "frame-ancestors 'none'",
             ].join("; "),
           },
