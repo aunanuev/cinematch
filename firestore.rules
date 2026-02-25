@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ──────────────────────────────────────────────────────────────
+    // MOVIES — every document is owned by a single authenticated user
+    // ──────────────────────────────────────────────────────────────
+    match /movies/{movieId} {
+
+      // Only the owner may read their movie
+      allow read: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
+
+      // Create is allowed only when the userId field matches the caller's uid
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && validMovieFields(request.resource.data);
+
+      // Update is allowed only by the owner; userId is immutable;
+      // only a whitelisted set of fields may change
+      allow update: if request.auth != null
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == resource.data.userId
+                    && validUpdateFields(
+                         request.resource.data.diff(resource.data).affectedKeys()
+                       );
+
+      // Delete is allowed only by the owner
+      allow delete: if request.auth != null
+                    && resource.data.userId == request.auth.uid;
+    }
+
+    // Deny everything not explicitly matched above
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ─── Helper functions ───────────────────────────────────────────
+
+    function validMovieFields(data) {
+      return data.keys().hasAll(['userId', 'title', 'createdAt'])
+          && data.title is string
+          && data.title.size() > 0
+          && data.title.size() <= 300
+          && data.userId is string;
+    }
+
+    function validUpdateFields(keys) {
+      // Only these fields may be mutated after creation
+      return keys.hasOnly([
+        'watched', 'rating', 'title', 'year',
+        'overview', 'aiPitch', 'vibeTags', 'updatedAt'
+      ]);
+    }
+  }
+}

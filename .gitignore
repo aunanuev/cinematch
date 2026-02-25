@@ -22,6 +22,11 @@
 
 # misc
 .DS_Store
+
+# local debug/test scripts (never commit these)
+test-*.js
+check-*.js
+*.log
 *.pem
 
 # debug
