@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Search, Loader2, Plus, X } from "lucide-react";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { addMovie } from "@/lib/firebase/firestore";
@@ -14,37 +13,71 @@ interface AddMovieModalProps {
     onClose: () => void;
 }
 
+const DEBOUNCE_MS = 350;
+const MAX_SUGGESTIONS = 6;
+
 export function AddMovieModal({ isOpen, onClose }: AddMovieModalProps) {
     const { user } = useAuth();
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<any[]>([]);
+    const [suggestions, setSuggestions] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [enriching, setEnriching] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [activeIndex, setActiveIndex] = useState(-1);
 
-    const handleSearch = async () => {
-        if (!query.trim()) return;
-        setLoading(true);
-        try {
-            const res = await fetch(`/api/movie/search?s=${encodeURIComponent(query)}`);
-            const data = await res.json();
-            if (data.Search) {
-                setResults(data.Search);
-            } else {
-                setResults([]);
-            }
-        } catch (error) {
-            console.error("Search failed", error);
-        } finally {
-            setLoading(false);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Debounced typeahead: fires TMDB search as-you-type
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+
+        const trimmed = query.trim();
+        if (trimmed.length < 2) {
+            setSuggestions([]);
+            setDropdownOpen(false);
+            return;
         }
-    };
 
-    const handleSelectMovie = async (movie: any) => {
+        debounceRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/movie/search?s=${encodeURIComponent(trimmed)}`);
+                const data = await res.json();
+                const hits = (data.Search ?? []).slice(0, MAX_SUGGESTIONS);
+                setSuggestions(hits);
+                setDropdownOpen(hits.length > 0);
+                setActiveIndex(-1);
+            } catch {
+                setSuggestions([]);
+            }
+        }, DEBOUNCE_MS);
+
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+    }, [query]);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    const handleSelectMovie = useCallback(async (movie: any) => {
         if (!user) return;
+        setDropdownOpen(false);
+        setQuery(movie.Title);
+        setSuggestions([]);
         setEnriching(true);
 
         try {
-            // 1. TMDB search results already include the full overview — pass it to AI.
             const token = await getIdToken();
             const aiRes = await fetch("/api/movie/enrich", {
                 method: "POST",
@@ -56,7 +89,6 @@ export function AddMovieModal({ isOpen, onClose }: AddMovieModalProps) {
             });
             const aiData = await aiRes.json();
 
-            // 2. Save to Firestore
             await addMovie({
                 imdbID: movie.imdbID,
                 userId: user.uid,
@@ -68,85 +100,151 @@ export function AddMovieModal({ isOpen, onClose }: AddMovieModalProps) {
                 vibeTags: aiData.tags || ["Movie"],
                 genres: movie.genres || [],
                 watched: false,
-                createdAt: Timestamp.now()
+                createdAt: Timestamp.now(),
             });
 
-            onClose();
-            setQuery("");
-            setResults([]);
+            handleClose();
         } catch (error: any) {
             console.error("Failed to add movie", error);
             alert(`Failed to add movie: ${error.message || error}`);
         } finally {
             setEnriching(false);
         }
+    }, [user]);
+
+    const handleClose = () => {
+        setQuery("");
+        setResults([]);
+        setSuggestions([]);
+        setDropdownOpen(false);
+        setActiveIndex(-1);
+        onClose();
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!dropdownOpen || suggestions.length === 0) return;
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setActiveIndex((i) => (i + 1) % suggestions.length);
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setActiveIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
+        } else if (e.key === "Enter" && activeIndex >= 0) {
+            e.preventDefault();
+            handleSelectMovie(suggestions[activeIndex]);
+        } else if (e.key === "Escape") {
+            setDropdownOpen(false);
+        }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="w-full max-w-2xl bg-gray-900 border border-gray-800 rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-
-                <div className="p-4 border-b border-gray-800 flex items-center gap-2">
-                    <Search className="w-5 h-5 text-gray-400" />
-                    <Input
-                        placeholder="Search for a movie..."
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                        className="border-none bg-transparent focus-visible:ring-0 text-lg p-0 h-auto placeholder:text-gray-500"
-                        autoFocus
-                    />
-                    <Button variant="ghost" size="icon" onClick={onClose}>
-                        <X className="w-5 h-5" />
-                    </Button>
-                </div>
-
-                <div className="overflow-y-auto p-4 space-y-2 flex-1 scrollbar-thin scrollbar-thumb-gray-800">
-                    {loading && (
-                        <div className="flex justify-center p-8">
-                            <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
-                        </div>
-                    )}
-
-                    {!loading && results.length === 0 && query && (
-                        <div className="text-center text-gray-500 p-8">
-                            No results found for "{query}"
-                        </div>
-                    )}
-
-                    {results.map((movie) => (
-                        <div
-                            key={movie.imdbID}
-                            className="flex gap-4 p-3 hover:bg-gray-800/50 rounded-lg cursor-pointer transition-colors group"
-                            onClick={() => handleSelectMovie(movie)}
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 backdrop-blur-sm p-4 pt-16 animate-in fade-in duration-200">
+            <div className="relative w-full max-w-lg" ref={containerRef}>
+                {/* Input card */}
+                <div className="w-full bg-[#0f1929] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+                    <div className="flex items-center gap-3 px-4 py-3.5">
+                        {loading ? (
+                            <Loader2 className="w-4 h-4 text-gray-400 animate-spin flex-shrink-0" />
+                        ) : (
+                            <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        )}
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            placeholder="Search for a movie to add..."
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            onFocus={() => suggestions.length > 0 && setDropdownOpen(true)}
+                            onKeyDown={handleKeyDown}
+                            autoFocus
+                            className="flex-1 bg-transparent text-base text-gray-100 placeholder:text-gray-500 outline-none"
+                        />
+                        {query && (
+                            <button
+                                onClick={() => { setQuery(""); setSuggestions([]); setDropdownOpen(false); }}
+                                className="text-gray-600 hover:text-gray-300 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
+                        <button
+                            onClick={handleClose}
+                            className="text-gray-600 hover:text-gray-300 transition-colors ml-1"
                         >
-                            <img
-                                src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
-                                alt={movie.Title}
-                                className="w-16 h-24 object-cover rounded shadow-md group-hover:scale-105 transition-transform"
-                            />
-                            <div className="flex-1">
-                                <h3 className="text-lg font-bold text-gray-100">{movie.Title}</h3>
-                                <p className="text-gray-400">{movie.Year}</p>
-                                <div className="mt-2 flex items-center gap-2 text-xs text-teal-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Plus className="w-4 h-4" />
-                                    Add to Collection
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* Hint text when empty */}
+                    {query.trim().length === 0 && (
+                        <p className="px-4 pb-4 text-xs text-gray-600">
+                            Type at least 2 characters to see suggestions from TMDB.
+                        </p>
+                    )}
                 </div>
 
-                {enriching && (
-                    <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center text-white z-50">
-                        <Loader2 className="w-12 h-12 animate-spin text-teal-500 mb-4" />
-                        <h3 className="text-xl font-bold animate-pulse">Consulting the AI...</h3>
-                        <p className="text-gray-400 text-sm mt-2">Generating pitch & vibes</p>
+                {/* Dropdown suggestions */}
+                {dropdownOpen && suggestions.length > 0 && (
+                    <div className="mt-2 w-full bg-[#0f1929] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                        {suggestions.map((movie, idx) => (
+                            <button
+                                key={movie.imdbID}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleSelectMovie(movie);
+                                }}
+                                onMouseEnter={() => setActiveIndex(idx)}
+                                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors duration-100 border-b border-white/5 last:border-0 ${idx === activeIndex ? "bg-emerald-600/20" : "hover:bg-white/5"
+                                    }`}
+                            >
+                                {/* Poster */}
+                                {movie.Poster && movie.Poster !== "N/A" ? (
+                                    <img
+                                        src={movie.Poster}
+                                        alt={movie.Title}
+                                        className="w-8 h-12 object-cover rounded flex-shrink-0"
+                                    />
+                                ) : (
+                                    <div className="w-8 h-12 bg-slate-700/60 rounded flex-shrink-0 flex items-center justify-center">
+                                        <Search className="w-3 h-3 text-gray-600" />
+                                    </div>
+                                )}
+
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-100 truncate">{movie.Title}</p>
+                                    <p className="text-xs text-gray-500">{movie.Year}</p>
+                                </div>
+
+                                {/* Add hint */}
+                                <div className="flex items-center gap-1 text-[11px] text-emerald-400/70 flex-shrink-0">
+                                    <Plus className="w-3.5 h-3.5" />
+                                    Add
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* No results */}
+                {query.trim().length >= 2 && !loading && suggestions.length === 0 && !dropdownOpen && (
+                    <div className="mt-2 w-full bg-[#0f1929] border border-white/10 rounded-2xl shadow-xl px-4 py-6 text-center text-sm text-gray-500">
+                        No results for "{query}"
                     </div>
                 )}
             </div>
+
+            {/* AI enriching overlay */}
+            {enriching && (
+                <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center text-white z-[60]">
+                    <Loader2 className="w-12 h-12 animate-spin text-teal-500 mb-4" />
+                    <h3 className="text-xl font-bold animate-pulse">Consulting the AI...</h3>
+                    <p className="text-gray-400 text-sm mt-2">Generating pitch &amp; vibes</p>
+                </div>
+            )}
         </div>
     );
 }

@@ -10,7 +10,8 @@ import { MovieGrid } from "@/components/dashboard/MovieGrid";
 import { GenreSection } from "@/components/dashboard/GenreSection";
 import { AddMovieFab } from "@/components/dashboard/AddMovieFab";
 import { AddMovieModal } from "@/components/dashboard/AddMovieModal";
-import { LayoutGrid, List, Tag, Search, X } from "lucide-react";
+import { LayoutGrid, List, Tag } from "lucide-react";
+import { SearchAutocomplete } from "@/components/dashboard/SearchAutocomplete";
 
 export default function Dashboard() {
     const { user, loading } = useAuth();
@@ -116,23 +117,13 @@ export default function Dashboard() {
                         ))}
                     </div>
 
-                    {/* Search bar */}
-                    <div className="px-3 py-1.5">
-                        <div className="flex items-center gap-2 bg-slate-800/60 border border-white/8 rounded-xl px-3 py-1.5 transition-all duration-200 focus-within:border-emerald-500/40 focus-within:bg-slate-800/80">
-                            <Search className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                            <input
-                                type="text"
-                                placeholder="Search your collection..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="flex-1 bg-transparent text-sm text-gray-200 placeholder:text-gray-600 outline-none"
-                            />
-                            {searchQuery && (
-                                <button onClick={() => setSearchQuery("")} className="text-gray-600 hover:text-gray-400 transition-colors">
-                                    <X className="w-3.5 h-3.5" />
-                                </button>
-                            )}
-                        </div>
+                    {/* Search bar with autocomplete */}
+                    <div className="relative">
+                        <SearchAutocomplete
+                            movies={movies}
+                            searchQuery={searchQuery}
+                            setSearchQuery={setSearchQuery}
+                        />
                     </div>
                 </div>
 

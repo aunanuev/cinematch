@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
                 "https://accounts.google.com",
               ].join(" "),
               // Firebase Auth popup & OAuth iframe
-              "frame-src https://studio-7772387773-dc41a.firebaseapp.com https://accounts.google.com",
+              "frame-src https://studio-7772387773-dc41a.firebaseapp.com https://accounts.google.com https://www.youtube.com https://youtube.com",
               "frame-ancestors 'none'",
             ].join("; "),
           },

@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { Movie } from "@/types";
-import { Check, Trash2, Eye, Sparkles, Star, Pencil, BookOpen } from "lucide-react";
+import { Check, Trash2, Eye, Sparkles, Star, BookOpen, PlayCircle } from "lucide-react";
 import { deleteMovie, toggleMovieWatched, updateMovieRating } from "@/lib/firebase/firestore";
 import { cn } from "@/lib/utils";
 import { SimilarMoviesModal } from "./SimilarMoviesModal";
-import { EditMovieModal } from "./EditMovieModal";
+
 import { DiaryModal } from "./DiaryModal";
+import { TrailerModal } from "./TrailerModal";
+import { MovieDetailModal } from "./MovieDetailModal";
 
 interface MovieListItemProps {
     movie: Movie;
@@ -18,8 +20,10 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [similarOpen, setSimilarOpen] = useState(false);
-    const [editOpen, setEditOpen] = useState(false);
+
     const [diaryOpen, setDiaryOpen] = useState(false);
+    const [trailerOpen, setTrailerOpen] = useState(false);
+    const [detailOpen, setDetailOpen] = useState(false);
 
     const handleToggleWatched = async () => {
         await toggleMovieWatched(movie.id, movie.watched);
@@ -53,10 +57,13 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
 
     return (
         <>
-            <div className={cn(
-                "flex gap-3 p-3 rounded-2xl bg-slate-900/70 backdrop-blur-md border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.6)] transition-all duration-300 hover:scale-[1.01] hover:border-emerald-500/30 hover:brightness-110 active:scale-[0.98]",
-                movie.watched && "opacity-60"
-            )}>
+            <div
+                className={cn(
+                    "flex gap-3 p-3 rounded-2xl bg-slate-900/70 backdrop-blur-md border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.6)] transition-all duration-300 hover:scale-[1.01] hover:border-emerald-500/30 hover:brightness-110 active:scale-[0.98] cursor-pointer",
+                    movie.watched && "opacity-60"
+                )}
+                onClick={() => setDetailOpen(true)}
+            >
                 {/* Poster */}
                 <div className="relative flex-shrink-0 w-16 h-24 rounded-xl overflow-hidden shadow-lg">
                     <img
@@ -65,7 +72,7 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
                         className="w-full h-full object-cover"
                     />
                     {movie.watched && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
                             <Check className="w-5 h-5 text-green-400" />
                         </div>
                     )}
@@ -106,7 +113,7 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
                         {/* Stars + icon buttons row */}
                         <div className="flex items-center justify-between">
                             {/* Star rating */}
-                            <div className="flex gap-1.5">
+                            <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
                                 {[1, 2, 3, 4, 5].map((s) => (
                                     <button key={s} onClick={() => handleRate(s)} className="p-0.5 touch-manipulation">
                                         <Star className={cn(
@@ -120,7 +127,7 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
                             </div>
 
                             {/* Icon action buttons */}
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                 {confirmDelete ? (
                                     <>
                                         <button
@@ -155,12 +162,13 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
                                             <BookOpen className="w-3.5 h-3.5" />
                                         </button>
                                         <button
-                                            onClick={() => setEditOpen(true)}
-                                            className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800/80 text-gray-500 active:bg-emerald-900/30 active:text-emerald-400 transition-colors"
-                                            title="Edit movie"
+                                            onClick={() => setTrailerOpen(true)}
+                                            className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800/80 text-gray-500 active:bg-red-900/30 active:text-red-400 transition-colors"
+                                            title="Watch Trailer"
                                         >
-                                            <Pencil className="w-3 h-3" />
+                                            <PlayCircle className="w-3.5 h-3.5" />
                                         </button>
+
                                         <button
                                             onClick={handleDeleteClick}
                                             className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800/80 text-gray-500 active:bg-red-900/30 active:text-red-400 transition-colors"
@@ -176,7 +184,7 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
                         {/* Watched button — full width below */}
                         {!confirmDelete && (
                             <button
-                                onClick={handleToggleWatched}
+                                onClick={(e) => { e.stopPropagation(); handleToggleWatched(); }}
                                 className={cn(
                                     "w-full h-7 flex items-center justify-center gap-1 rounded-2xl text-[11px] font-semibold transition-all duration-300",
                                     movie.watched
@@ -198,11 +206,21 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
             {similarOpen && (
                 <SimilarMoviesModal movie={movie} onClose={() => setSimilarOpen(false)} />
             )}
-            {editOpen && (
-                <EditMovieModal movie={movie} onClose={() => setEditOpen(false)} />
-            )}
+
             {diaryOpen && (
                 <DiaryModal movie={movie} collectionTags={collectionTags} onClose={() => setDiaryOpen(false)} />
+            )}
+            {trailerOpen && (
+                <TrailerModal movie={movie} onClose={() => setTrailerOpen(false)} />
+            )}
+            {detailOpen && (
+                <MovieDetailModal
+                    movie={movie}
+                    onClose={() => setDetailOpen(false)}
+                    onOpenSimilar={() => setSimilarOpen(true)}
+                    onOpenDiary={() => setDiaryOpen(true)}
+                    onOpenTrailer={() => setTrailerOpen(true)}
+                />
             )}
         </>
     );
