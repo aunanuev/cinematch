@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Movie } from "@/types";
+import { MediaItem } from "@/types";
 import { X, BookOpen, Loader2, RefreshCw } from "lucide-react";
 import { getIdToken } from "@/lib/getIdToken";
 
 interface DiaryModalProps {
-    movie: Movie;
+    movie: MediaItem;
+    mediaType: "movie" | "series";
     collectionTags: string[];
     onClose: () => void;
 }
 
-export function DiaryModal({ movie, collectionTags, onClose }: DiaryModalProps) {
+export function DiaryModal({ movie, mediaType, collectionTags, onClose }: DiaryModalProps) {
     const [diary, setDiary] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -21,7 +22,7 @@ export function DiaryModal({ movie, collectionTags, onClose }: DiaryModalProps) 
         setError("");
         try {
             const token = await getIdToken();
-            const res = await fetch("/api/movie/diary", {
+            const res = await fetch(`/api/${mediaType}/diary`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

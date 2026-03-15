@@ -2,25 +2,28 @@
 
 import { useEffect, useRef } from "react";
 import { X, Star, Check, Eye, Sparkles, BookOpen, PlayCircle, Tag } from "lucide-react";
-import { Movie } from "@/types";
+import { MediaItem } from "@/types";
 import { cn } from "@/lib/utils";
-import { updateMovieRating, toggleMovieWatched } from "@/lib/firebase/firestore";
+import { updateMovieRating, toggleMovieWatched, updateSeriesRating, toggleSeriesWatched } from "@/lib/firebase/firestore";
+import { WatchProviders } from "@/components/dashboard/WatchProviders";
 
-interface MovieDetailModalProps {
-    movie: Movie;
+interface MediaDetailModalProps {
+    movie: MediaItem;
+    mediaType: "movie" | "series";
     onClose: () => void;
     onOpenSimilar?: () => void;
     onOpenDiary?: () => void;
     onOpenTrailer?: () => void;
 }
 
-export function MovieDetailModal({
+export function MediaDetailModal({
     movie,
+    mediaType,
     onClose,
     onOpenSimilar,
     onOpenDiary,
     onOpenTrailer,
-}: MovieDetailModalProps) {
+}: MediaDetailModalProps) {
     const overlayRef = useRef<HTMLDivElement>(null);
 
     // Escape key closes
@@ -31,11 +34,13 @@ export function MovieDetailModal({
     }, [onClose]);
 
     const handleRate = async (rating: number) => {
-        await updateMovieRating(movie.id, rating);
+        if (mediaType === "series") await updateSeriesRating(movie.id, rating);
+        else await updateMovieRating(movie.id, rating);
     };
 
     const handleToggleWatched = async () => {
-        await toggleMovieWatched(movie.id, movie.watched);
+        if (mediaType === "series") await toggleSeriesWatched(movie.id, movie.watched);
+        else await toggleMovieWatched(movie.id, movie.watched);
     };
 
     return (
@@ -141,8 +146,8 @@ export function MovieDetailModal({
                     </div>
                 )}
 
-                {/* Divider */}
-                <div className="h-px bg-white/5 mx-5" />
+                {/* Where to Watch */}
+                <WatchProviders tmdbId={movie.imdbID} type={mediaType === "series" ? "tv" : "movie"} />
 
                 {/* Action row */}
                 <div className="flex gap-2 px-5 py-4">
@@ -178,7 +183,7 @@ export function MovieDetailModal({
                         <button
                             onClick={() => { onClose(); onOpenSimilar(); }}
                             className="w-10 h-10 flex items-center justify-center rounded-2xl bg-slate-800/80 text-gray-400 hover:text-purple-400 hover:bg-slate-700 transition-all"
-                            title="Similar movies"
+                            title={`Similar ${mediaType === "series" ? "series" : "movies"}`}
                         >
                             <Sparkles className="w-5 h-5" />
                         </button>

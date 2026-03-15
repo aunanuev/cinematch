@@ -1,22 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Movie } from "@/types";
+import { MediaItem } from "@/types";
 import { Check, Trash2, Eye, Sparkles, Star, BookOpen, PlayCircle } from "lucide-react";
-import { deleteMovie, toggleMovieWatched, updateMovieRating } from "@/lib/firebase/firestore";
+import { deleteMovie, toggleMovieWatched, updateMovieRating, deleteSeries, toggleSeriesWatched, updateSeriesRating } from "@/lib/firebase/firestore";
 import { cn } from "@/lib/utils";
-import { SimilarMoviesModal } from "./SimilarMoviesModal";
+import { SimilarMediaModal } from "./SimilarMediaModal";
 
 import { DiaryModal } from "./DiaryModal";
 import { TrailerModal } from "./TrailerModal";
-import { MovieDetailModal } from "./MovieDetailModal";
+import { MediaDetailModal } from "./MediaDetailModal";
 
-interface MovieListItemProps {
-    movie: Movie;
+interface MediaListItemProps {
+    item: MediaItem;
+    mediaType: "movie" | "series";
     collectionTags?: string[];
 }
 
-export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps) {
+export function MediaListItem({ item, mediaType, collectionTags = [] }: MediaListItemProps) {
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [similarOpen, setSimilarOpen] = useState(false);
@@ -26,7 +27,8 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
     const [detailOpen, setDetailOpen] = useState(false);
 
     const handleToggleWatched = async () => {
-        await toggleMovieWatched(movie.id, movie.watched);
+        if (mediaType === "series") await toggleSeriesWatched(item.id, item.watched);
+        else await toggleMovieWatched(item.id, item.watched);
     };
 
     const handleDeleteClick = (e: React.MouseEvent) => {
@@ -38,9 +40,10 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
         e.stopPropagation();
         setDeleting(true);
         try {
-            await deleteMovie(movie.id);
+            if (mediaType === "series") await deleteSeries(item.id);
+            else await deleteMovie(item.id);
         } catch (error) {
-            console.error("Failed to delete movie", error);
+            console.error("Failed to delete", error);
             setDeleting(false);
             setConfirmDelete(false);
         }
@@ -52,7 +55,8 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
     };
 
     const handleRate = async (rating: number) => {
-        await updateMovieRating(movie.id, rating);
+        if (mediaType === "series") await updateSeriesRating(item.id, rating);
+        else await updateMovieRating(item.id, rating);
     };
 
     return (
@@ -60,18 +64,18 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
             <div
                 className={cn(
                     "flex gap-3 p-3 rounded-2xl bg-slate-900/70 backdrop-blur-md border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.6)] transition-all duration-300 hover:scale-[1.01] hover:border-emerald-500/30 hover:brightness-110 active:scale-[0.98] cursor-pointer",
-                    movie.watched && "opacity-60"
+                    item.watched && "opacity-60"
                 )}
                 onClick={() => setDetailOpen(true)}
             >
                 {/* Poster */}
                 <div className="relative flex-shrink-0 w-16 h-24 rounded-xl overflow-hidden shadow-lg">
                     <img
-                        src={movie.poster_path !== "N/A" ? movie.poster_path : "/placeholder-poster.png"}
-                        alt={movie.title}
+                        src={item.poster_path !== "N/A" ? item.poster_path : "/placeholder-poster.png"}
+                        alt={item.title}
                         className="w-full h-full object-cover"
                     />
-                    {movie.watched && (
+                    {item.watched && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
                             <Check className="w-5 h-5 text-green-400" />
                         </div>
@@ -84,15 +88,15 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
                     <div>
                         <div className="flex items-start justify-between gap-2">
                             <h3 className="font-bold text-white text-sm leading-snug line-clamp-2 flex-1">
-                                {movie.title}
+                                {item.title}
                             </h3>
-                            <span className="text-xs text-gray-500 flex-shrink-0 mt-0.5">{movie.year}</span>
+                            <span className="text-xs text-gray-500 flex-shrink-0 mt-0.5">{item.year}</span>
                         </div>
 
                         {/* Genre tags */}
-                        {movie.genres && movie.genres.length > 0 && (
+                        {item.genres && item.genres.length > 0 && (
                             <div className="flex gap-1 mt-1 flex-wrap">
-                                {movie.genres.slice(0, 2).map((g, i) => (
+                                {item.genres.slice(0, 2).map((g, i) => (
                                     <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-900/50 text-teal-300 border border-teal-800/40">
                                         {g}
                                     </span>
@@ -101,9 +105,9 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
                         )}
 
                         {/* Overview */}
-                        {(movie.overview || movie.aiPitch) && (
+                        {(item.overview || item.aiPitch) && (
                             <p className="text-[11px] text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
-                                {movie.overview || movie.aiPitch}
+                                {item.overview || item.aiPitch}
                             </p>
                         )}
                     </div>
@@ -118,7 +122,7 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
                                     <button key={s} onClick={() => handleRate(s)} className="p-0.5 touch-manipulation">
                                         <Star className={cn(
                                             "w-3.5 h-3.5 transition-transform duration-200 active:scale-125",
-                                            s <= (movie.rating || 0)
+                                            s <= (item.rating || 0)
                                                 ? "fill-yellow-400 text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]"
                                                 : "text-gray-700"
                                         )} />
@@ -187,12 +191,12 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
                                 onClick={(e) => { e.stopPropagation(); handleToggleWatched(); }}
                                 className={cn(
                                     "w-full h-7 flex items-center justify-center gap-1 rounded-2xl text-[11px] font-semibold transition-all duration-300",
-                                    movie.watched
+                                    item.watched
                                         ? "bg-slate-800 text-gray-400 hover:bg-slate-700 active:bg-slate-700"
                                         : "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 hover:bg-emerald-400 active:bg-emerald-400"
                                 )}
                             >
-                                {movie.watched ? (
+                                {item.watched ? (
                                     <><Eye className="w-3 h-3" /> Pending</>
                                 ) : (
                                     <><Check className="w-3 h-3" /> Watched</>
@@ -204,18 +208,19 @@ export function MovieListItem({ movie, collectionTags = [] }: MovieListItemProps
             </div>
 
             {similarOpen && (
-                <SimilarMoviesModal movie={movie} onClose={() => setSimilarOpen(false)} />
+                <SimilarMediaModal movie={item} mediaType={mediaType} onClose={() => setSimilarOpen(false)} />
             )}
 
             {diaryOpen && (
-                <DiaryModal movie={movie} collectionTags={collectionTags} onClose={() => setDiaryOpen(false)} />
+                <DiaryModal movie={item} mediaType={mediaType} collectionTags={collectionTags} onClose={() => setDiaryOpen(false)} />
             )}
             {trailerOpen && (
-                <TrailerModal movie={movie} onClose={() => setTrailerOpen(false)} />
+                <TrailerModal movie={item} mediaType={mediaType} onClose={() => setTrailerOpen(false)} />
             )}
             {detailOpen && (
-                <MovieDetailModal
-                    movie={movie}
+                <MediaDetailModal
+                    movie={item}
+                    mediaType={mediaType}
                     onClose={() => setDetailOpen(false)}
                     onOpenSimilar={() => setSimilarOpen(true)}
                     onOpenDiary={() => setDiaryOpen(true)}

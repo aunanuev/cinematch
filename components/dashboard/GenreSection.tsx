@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Movie } from "@/types";
-import { MovieGrid } from "./MovieGrid";
+import { MediaItem } from "@/types";
+import { MediaGrid } from "./MediaGrid";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface GenreSectionProps {
     genre: string;
-    movies: Movie[];
+    items: MediaItem[];
+    mediaType: "movie" | "series";
     viewMode: "grid" | "list";
 }
 
-export function GenreSection({ genre, movies, viewMode }: GenreSectionProps) {
+export function GenreSection({ genre, items, mediaType, viewMode }: GenreSectionProps) {
     const [isOpen, setIsOpen] = useState(true);
 
     return (
@@ -34,7 +35,7 @@ export function GenreSection({ genre, movies, viewMode }: GenreSectionProps) {
                 </h3>
 
                 <span className="text-xs font-medium text-gray-500 bg-gray-900 px-2 py-0.5 rounded-full border border-gray-800">
-                    {movies.length}
+                    {items.length}
                 </span>
 
                 {/* Divider line */}
@@ -44,7 +45,7 @@ export function GenreSection({ genre, movies, viewMode }: GenreSectionProps) {
             {/* Collapsible content */}
             {isOpen && (
                 <div className="pl-0 animate-in fade-in slide-in-from-top-1 duration-200">
-                    <MovieGrid movies={movies} viewMode={viewMode} />
+                    <MediaGrid items={items} mediaType={mediaType} viewMode={viewMode} />
                 </div>
             )}
         </div>

@@ -2,14 +2,15 @@
 
 import { useEffect, useState, useRef } from "react";
 import { X, Loader2, PlayCircle } from "lucide-react";
-import { Movie } from "@/types";
+import { MediaItem } from "@/types";
 
 interface TrailerModalProps {
-    movie: Movie;
+    movie: MediaItem;
+    mediaType: "movie" | "series";
     onClose: () => void;
 }
 
-export function TrailerModal({ movie, onClose }: TrailerModalProps) {
+export function TrailerModal({ movie, mediaType, onClose }: TrailerModalProps) {
     const [trailerKey, setTrailerKey] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export function TrailerModal({ movie, onClose }: TrailerModalProps) {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch(`/api/movie/trailer?id=${movie.imdbID}`);
+                const res = await fetch(`/api/${mediaType}/trailer?id=${movie.imdbID}`);
                 if (!res.ok) {
                     const d = await res.json().catch(() => ({}));
                     throw new Error(d.error || "No trailer available");

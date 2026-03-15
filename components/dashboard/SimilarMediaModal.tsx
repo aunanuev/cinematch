@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Movie } from "@/types";
+import { MediaItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, Plus, X, RefreshCw } from "lucide-react";
-import { addMovie } from "@/lib/firebase/firestore";
+import { addMovie, addSeries } from "@/lib/firebase/firestore";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { Timestamp } from "firebase/firestore";
 import { getIdToken } from "@/lib/getIdToken";
@@ -15,12 +15,13 @@ interface Recommendation {
     reason: string;
 }
 
-interface SimilarMoviesModalProps {
-    movie: Movie;
+interface SimilarMediaModalProps {
+    movie: MediaItem;
+    mediaType: "movie" | "series";
     onClose: () => void;
 }
 
-export function SimilarMoviesModal({ movie, onClose }: SimilarMoviesModalProps) {
+export function SimilarMediaModal({ movie, mediaType, onClose }: SimilarMediaModalProps) {
     const { user } = useAuth();
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
     const [loading, setLoading] = useState(false);
@@ -33,7 +34,7 @@ export function SimilarMoviesModal({ movie, onClose }: SimilarMoviesModalProps) 
         setRecommendations([]);
         try {
             const token = await getIdToken();
-            const res = await fetch("/api/movie/recommend", {
+            const res = await fetch(`/api/${mediaType}/recommend`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -69,7 +70,7 @@ export function SimilarMoviesModal({ movie, onClose }: SimilarMoviesModalProps) 
     const handleAdd = async (rec: Recommendation) => {
         if (!user) return;
         try {
-            await addMovie({
+            const data = {
                 imdbID: `rec-${Date.now()}`,
                 userId: user.uid,
                 title: rec.title,
@@ -82,7 +83,12 @@ export function SimilarMoviesModal({ movie, onClose }: SimilarMoviesModalProps) 
                 watched: false,
                 createdAt: Timestamp.now(),
                 rating: 0,
-            });
+            };
+            if (mediaType === "series") {
+                await addSeries(data);
+            } else {
+                await addMovie(data);
+            }
             setAdded(prev => new Set([...prev, rec.title]));
         } catch {
             alert("Failed to add movie.");
@@ -127,7 +133,7 @@ export function SimilarMoviesModal({ movie, onClose }: SimilarMoviesModalProps) 
                     {loading && (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
                             <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
-                            <p className="text-sm text-gray-400 animate-pulse">Finding similar movies...</p>
+                            <p className="text-sm text-gray-400 animate-pulse">Finding similar {mediaType === "series" ? "series" : "movies"}...</p>
                         </div>
                     )}
 
