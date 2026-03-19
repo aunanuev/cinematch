@@ -1,4 +1,4 @@
-const CACHE_NAME = "cinematch-v1";
+const CACHE_NAME = "cinematch-v2";
 
 // Assets to pre-cache on install
 const PRECACHE_ASSETS = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
@@ -35,7 +35,21 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    // Cache-first for static assets (images, fonts, JS chunks)
+    // Network-first for HTML pages (documents) to always get the latest framework chunks and layout
+    if (request.mode === "navigate") {
+        event.respondWith(
+            fetch(request)
+                .then((networkResponse) => {
+                    const cloned = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+                    return networkResponse;
+                })
+                .catch(() => caches.match(request))
+        );
+        return;
+    }
+
+    // Cache-first for images, fonts, JS, CSS
     event.respondWith(
         caches.match(request).then((cached) => {
             if (cached) return cached;
