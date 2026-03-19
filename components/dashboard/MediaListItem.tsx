@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { MediaItem } from "@/types";
-import { Check, Trash2, Eye, Sparkles, Star, BookOpen, PlayCircle } from "lucide-react";
+import { Check, Trash2, Eye, Sparkles, Star, PlayCircle } from "lucide-react";
 import { deleteMovie, toggleMovieWatched, updateMovieRating, deleteSeries, toggleSeriesWatched, updateSeriesRating } from "@/lib/firebase/firestore";
 import { cn } from "@/lib/utils";
 import { SimilarMediaModal } from "./SimilarMediaModal";
 
-import { DiaryModal } from "./DiaryModal";
 import { TrailerModal } from "./TrailerModal";
 import { MediaDetailModal } from "./MediaDetailModal";
 
@@ -22,7 +21,6 @@ export function MediaListItem({ item, mediaType, collectionTags = [] }: MediaLis
     const [deleting, setDeleting] = useState(false);
     const [similarOpen, setSimilarOpen] = useState(false);
 
-    const [diaryOpen, setDiaryOpen] = useState(false);
     const [trailerOpen, setTrailerOpen] = useState(false);
     const [detailOpen, setDetailOpen] = useState(false);
 
@@ -159,13 +157,6 @@ export function MediaListItem({ item, mediaType, collectionTags = [] }: MediaLis
                                             <Sparkles className="w-3.5 h-3.5" />
                                         </button>
                                         <button
-                                            onClick={() => setDiaryOpen(true)}
-                                            className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800/80 text-gray-500 active:bg-purple-900/30 active:text-purple-400 transition-colors"
-                                            title="AI Diary"
-                                        >
-                                            <BookOpen className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
                                             onClick={() => setTrailerOpen(true)}
                                             className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800/80 text-gray-500 active:bg-red-900/30 active:text-red-400 transition-colors"
                                             title="Watch Trailer"
@@ -211,9 +202,6 @@ export function MediaListItem({ item, mediaType, collectionTags = [] }: MediaLis
                 <SimilarMediaModal movie={item} mediaType={mediaType} onClose={() => setSimilarOpen(false)} />
             )}
 
-            {diaryOpen && (
-                <DiaryModal movie={item} mediaType={mediaType} collectionTags={collectionTags} onClose={() => setDiaryOpen(false)} />
-            )}
             {trailerOpen && (
                 <TrailerModal movie={item} mediaType={mediaType} onClose={() => setTrailerOpen(false)} />
             )}
@@ -223,7 +211,6 @@ export function MediaListItem({ item, mediaType, collectionTags = [] }: MediaLis
                     mediaType={mediaType}
                     onClose={() => setDetailOpen(false)}
                     onOpenSimilar={() => setSimilarOpen(true)}
-                    onOpenDiary={() => setDiaryOpen(true)}
                     onOpenTrailer={() => setTrailerOpen(true)}
                 />
             )}
