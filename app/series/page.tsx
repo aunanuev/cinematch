@@ -17,7 +17,7 @@ export default function SeriesDashboard() {
     const { user, loading } = useAuth();
     const router = useRouter();
     const [seriesList, setSeriesList] = useState<Series[]>([]);
-    const [filter, setFilter] = useState<"all" | "watched" | "pending">("all");
+    const [filter, setFilter] = useState<"all" | "watched" | "pending">("pending");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [groupByGenre, setGroupByGenre] = useState(false);
@@ -90,40 +90,13 @@ export default function SeriesDashboard() {
             <div className="relative z-10 flex flex-col min-h-screen">
                 <Header />
 
-                {/* Filter tab bar — sticky below header */}
+                {/* Search bar — sticky below header */}
                 <div className="sticky top-[88px] z-40 bg-[#0B1220]/80 backdrop-blur-md border-b border-white/5">
-                    {/* Watch-status tabs */}
-                    <div className="flex px-4">
-                        {[
-                            { key: "all", label: "All", count: seriesList.length },
-                            { key: "pending", label: "To Watch", count: pendingCount },
-                            { key: "watched", label: "Watched", count: watchedCount },
-                        ].map((tab) => (
-                            <button
-                                key={tab.key}
-                                onClick={() => { setFilter(tab.key as typeof filter); setSearchQuery(""); setSelectedTag(null); }}
-                                className={`flex-1 py-2 text-sm font-semibold flex items-center justify-center gap-1.5 border-b-2 transition-all duration-300 ${filter === tab.key
-                                    ? "border-purple-400 text-purple-400"
-                                    : "border-transparent text-gray-500 active:text-gray-300"
-                                    }`}
-                            >
-                                {tab.label}
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filter === tab.key ? "bg-purple-900/50 text-purple-300" : "bg-gray-800/60 text-gray-500"
-                                    }`}>
-                                    {tab.count}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Search bar with autocomplete */}
-                    <div className="relative">
-                        <SearchAutocomplete
-                            movies={seriesList}
-                            searchQuery={searchQuery}
-                            setSearchQuery={setSearchQuery}
-                        />
-                    </div>
+                    <SearchAutocomplete
+                        movies={seriesList}
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                    />
                 </div>
 
                 {/* Main content */}
@@ -233,7 +206,33 @@ export default function SeriesDashboard() {
                 </main>
             </div>
 
-            <AddSeriesFab onClick={() => setIsAddModalOpen(true)} />
+            {/* Bottom filter tab bar */}
+            <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0B1220]/90 backdrop-blur-md border-t border-white/5 pb-safe">
+                <div className="flex px-4">
+                    {[
+                        { key: "pending", label: "To Watch", count: pendingCount },
+                        { key: "watched", label: "Watched", count: watchedCount },
+                    ].map((tab) => (
+                        <button
+                            key={tab.key}
+                            onClick={() => { setFilter(tab.key as typeof filter); setSearchQuery(""); setSelectedTag(null); }}
+                            className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-1.5 border-t-2 -mt-px transition-all duration-300 ${
+                                filter === tab.key
+                                    ? "border-purple-400 text-purple-400"
+                                    : "border-transparent text-gray-500 active:text-gray-300"
+                            }`}
+                        >
+                            {tab.label}
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                filter === tab.key ? "bg-purple-900/50 text-purple-300" : "bg-gray-800/60 text-gray-500"
+                            }`}>
+                                {tab.count}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+                <AddSeriesFab onClick={() => setIsAddModalOpen(true)} />
+            </div>
 
             <AddSeriesModal
                 isOpen={isAddModalOpen}

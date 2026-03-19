@@ -84,7 +84,7 @@ export function TrailerModal({ movie, mediaType, onClose }: TrailerModalProps) {
                     <div className="flex flex-col items-center gap-3 text-center px-6">
                         <PlayCircle className="w-12 h-12 text-gray-700" />
                         <p className="text-gray-400 font-medium">{error}</p>
-                        <p className="text-xs text-gray-600">No trailer was found on TMDB for this movie.</p>
+                        <p className="text-xs text-gray-600">No trailer was found on TMDB for this {mediaType === "series" ? "series" : "movie"}.</p>
                     </div>
                 )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { X, Star, Check, Eye, Sparkles, BookOpen, PlayCircle, Tag } from "lucide-react";
+import { X, Star, Check, Eye, Sparkles, PlayCircle, Tag } from "lucide-react";
 import { MediaItem } from "@/types";
 import { cn } from "@/lib/utils";
 import { updateMovieRating, toggleMovieWatched, updateSeriesRating, toggleSeriesWatched } from "@/lib/firebase/firestore";
@@ -12,7 +12,6 @@ interface MediaDetailModalProps {
     mediaType: "movie" | "series";
     onClose: () => void;
     onOpenSimilar?: () => void;
-    onOpenDiary?: () => void;
     onOpenTrailer?: () => void;
 }
 
@@ -21,7 +20,6 @@ export function MediaDetailModal({
     mediaType,
     onClose,
     onOpenSimilar,
-    onOpenDiary,
     onOpenTrailer,
 }: MediaDetailModalProps) {
     const overlayRef = useRef<HTMLDivElement>(null);
@@ -189,16 +187,6 @@ export function MediaDetailModal({
                         </button>
                     )}
 
-                    {/* Diary */}
-                    {onOpenDiary && (
-                        <button
-                            onClick={() => { onClose(); onOpenDiary(); }}
-                            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-slate-800/80 text-gray-400 hover:text-purple-400 hover:bg-slate-700 transition-all"
-                            title="AI Diary"
-                        >
-                            <BookOpen className="w-5 h-5" />
-                        </button>
-                    )}
                 </div>
             </div>
         </div>

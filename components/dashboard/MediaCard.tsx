@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { MediaItem } from "@/types";
-import { Check, Trash2, Eye, Sparkles, Star, BookOpen, PlayCircle } from "lucide-react";
+import { Check, Trash2, Eye, Sparkles, Star, PlayCircle } from "lucide-react";
 import { deleteMovie, toggleMovieWatched, updateMovieRating, deleteSeries, toggleSeriesWatched, updateSeriesRating } from "@/lib/firebase/firestore";
 import { cn } from "@/lib/utils";
 import { SimilarMediaModal } from "./SimilarMediaModal";
 
-import { DiaryModal } from "./DiaryModal";
 import { TrailerModal } from "./TrailerModal";
 import { MediaDetailModal } from "./MediaDetailModal";
 
@@ -21,8 +20,6 @@ export function MediaCard({ item, mediaType, collectionTags = [] }: MediaCardPro
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [similarOpen, setSimilarOpen] = useState(false);
-
-    const [diaryOpen, setDiaryOpen] = useState(false);
     const [trailerOpen, setTrailerOpen] = useState(false);
     const [detailOpen, setDetailOpen] = useState(false);
 
@@ -135,37 +132,32 @@ export function MediaCard({ item, mediaType, collectionTags = [] }: MediaCardPro
                     </div>
 
                     {/* Action row */}
-                    <div className="flex gap-1 mt-auto pt-1">
+                    <div className="flex gap-1.5 mt-auto pt-2 pb-1">
                         <button
                             onClick={handleToggleWatched}
+                            title={item.watched ? "Unwatch" : "Mark Watched"}
                             className={cn(
-                                "flex-1 h-7 rounded-2xl text-[11px] font-semibold flex items-center justify-center gap-1 transition-all duration-300",
+                                "flex-1 h-9 rounded-xl flex items-center justify-center transition-all duration-300",
                                 item.watched
-                                    ? "bg-slate-800 text-gray-400 hover:bg-slate-700 active:bg-slate-700"
-                                    : "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 hover:bg-emerald-400 active:bg-emerald-400"
+                                    ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:scale-105"
+                                    : "bg-slate-800/80 text-gray-400 hover:text-white hover:bg-slate-700"
                             )}
                         >
-                            {item.watched ? <><Eye className="w-3 h-3" />Unwatched</> : <><Check className="w-3 h-3" />Watched</>}
+                            {item.watched ? <Check className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                         <button
                             onClick={() => setSimilarOpen(true)}
-                            className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800/80 text-gray-500 active:bg-purple-900/30 active:text-purple-400 transition-colors"
+                            title="Find Similar"
+                            className="flex-1 h-9 flex items-center justify-center rounded-xl bg-slate-800/80 text-gray-400 hover:text-purple-400 hover:bg-purple-900/30 transition-colors"
                         >
-                            <Sparkles className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                            onClick={() => setDiaryOpen(true)}
-                            className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800/80 text-gray-500 active:bg-purple-900/30 active:text-purple-400 transition-colors"
-                            title="AI Diary"
-                        >
-                            <BookOpen className="w-3.5 h-3.5" />
+                            <Sparkles className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => setTrailerOpen(true)}
-                            className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800/80 text-gray-500 active:bg-red-900/30 active:text-red-400 transition-colors"
                             title="Watch Trailer"
+                            className="flex-1 h-9 flex items-center justify-center rounded-xl bg-slate-800/80 text-gray-400 hover:text-red-400 hover:bg-red-900/30 transition-colors"
                         >
-                            <PlayCircle className="w-3.5 h-3.5" />
+                            <PlayCircle className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
@@ -175,9 +167,6 @@ export function MediaCard({ item, mediaType, collectionTags = [] }: MediaCardPro
                 <SimilarMediaModal movie={item} mediaType={mediaType} onClose={() => setSimilarOpen(false)} />
             )}
 
-            {diaryOpen && (
-                <DiaryModal movie={item} mediaType={mediaType} collectionTags={collectionTags} onClose={() => setDiaryOpen(false)} />
-            )}
             {trailerOpen && (
                 <TrailerModal movie={item} mediaType={mediaType} onClose={() => setTrailerOpen(false)} />
             )}
@@ -187,7 +176,6 @@ export function MediaCard({ item, mediaType, collectionTags = [] }: MediaCardPro
                     mediaType={mediaType}
                     onClose={() => setDetailOpen(false)}
                     onOpenSimilar={() => setSimilarOpen(true)}
-                    onOpenDiary={() => setDiaryOpen(true)}
                     onOpenTrailer={() => setTrailerOpen(true)}
                 />
             )}
